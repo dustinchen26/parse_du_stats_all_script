@@ -12,8 +12,8 @@ parseGNBLine() {
 
 # calculate DL BLER and UL BLER
 calculateDLandULbler() {
-    local dlTx="$1"
-    local dlRetx="$2"
+    local ack_tb0="$1"
+    local nack_tb0="$2"
     local ulCRCsucces="$3"
     local ulCRCfail="$4"
 
@@ -21,8 +21,8 @@ calculateDLandULbler() {
     local ulBler="0.0000"
 
     # Check if the denominator is not zero before calculating DL BLER
-    if [[ $(($dlTx + $dlRetx)) -ne 0 ]]; then
-        dlBler=$(awk "BEGIN {printf \"%.4f\", $dlRetx / ($dlTx + $dlRetx)}")
+    if [[ $(($ack_tb0 + $nack_tb0)) -ne 0 ]]; then
+        dlBler=$(awk "BEGIN {printf \"%.4f\", $nack_tb0 / ($ack_tb0 + $nack_tb0)}")
     fi
 
     # Check if the denominator is not zero before calculating UL BLER
@@ -40,7 +40,10 @@ parseTput() {
     local dlTput=${values[5]}
     local ulTput=${values[7]}
     
-    echo "UE-ID=$ueId DL-TPT=$dlTput UL-TPT=$ulTput"
+    # 檢查 DL-Throughput 和 UL-Throughput 是否為空，如果不是，則輸出
+    if [[ -n $dlTput && -n $ulTput ]]; then
+        echo "UE-ID=$ueId DL-Throughput=$dlTput UL-Throughput=$ulTput"
+    fi
 
     # Continue parsing subsequent lines with numbers, empty lines, or lines starting with dashes
     while read -r nextLine && [[ $nextLine =~ ^[0-9]*$|^$ || ! $nextLine =~ ^--------------------------------------------------------------------------------------------- ]]; do
@@ -53,7 +56,11 @@ parseTput() {
 		local ueId=${values[0]}
 		local dlTput=${values[5]}
 		local ulTput=${values[7]}
-        echo "UE-ID=$ueId DL-TPT=$dlTput UL-TPT=$ulTput"
+
+        # 檢查 DL-Throughput 和 UL-Throughput 是否為空，如果不是，則輸出
+        if [[ -n $dlTput && -n $ulTput ]]; then
+            echo "UE-ID=$ueId DL-Throughput=$dlTput UL-Throughput=$ulTput"
+        fi
     done
 }
 
@@ -62,25 +69,25 @@ parseUEData() {
     local line="$1"
     local values=($line)
     local ueId=${values[0]}
-    local dlTx=${values[3]}
-    local dlRetx=${values[4]}
+    local ack_tb0=${values[5]}
+    local nack_tb0=${values[6]}
     local ulCRCsucces=${values[18]}
     local ulCRCfail=${values[19]}
 	
-    #echo "UE-ID=$ueId DL-TX=$dlTx DL-RETX=$dlRetx UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
-    calculateDLandULbler "$dlTx" "$dlRetx" "$ulCRCsucces" "$ulCRCfail" 
+    #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
+    calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
 
     # Continue parsing subsequent lines with numbers
     while read -r nextLine && [[ $nextLine =~ ^[0-9] ]]; do
         values=($nextLine)
         ueId=${values[0]}
-        dlTx=${values[3]}
-        dlRetx=${values[4]}
+        ack_tb0=${values[5]}
+        nack_tb0=${values[6]}
         ulCRCsucces=${values[18]}
 		ulCRCfail=${values[19]}
 		
-        #echo "UE-ID=$ueId DL-TX=$dlTx DL-RETX=$dlRetx UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
-        calculateDLandULbler "$dlTx" "$dlRetx" "$ulCRCsucces" "$ulCRCfail" 
+        #echo "UE-ID=$ueId DL-TX=$ack_tb0 DL-RETX=$nack_tb0 UL-CRC-SUCC=$ulCRCsucces UL-CRC-FAIL=$ulCRCfail"
+        calculateDLandULbler "$ack_tb0" "$nack_tb0" "$ulCRCsucces" "$ulCRCfail" 
     done
 }
 
